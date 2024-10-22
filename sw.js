@@ -1,50 +1,66 @@
-const cacheName = 'osm-cache-v1';
+const cacheName = 'maptiler-raster-cache-v1';
 const cacheAssets = [
-    '/',         // Корневая страница (index.html)
-    '/index.html', // Сам HTML файл
-    // Здесь можно добавить другие статические ресурсы (скрипты, стили и т.д.), если они нужны оффлайн
+    '/',                      // Главная страница
+    '/index.html',             // HTML файл
+    '/libs/leaflet.css',       // Локальная копия Leaflet CSS (если есть)
+    '/libs/leaflet.js',        // Локальная копия Leaflet JS (если есть)
 ];
 
-// Кэшируем основные файлы при установке Service Worker
+// Устанавливаем Service Worker и кэшируем ресурсы
 self.addEventListener('install', function(event) {
     event.waitUntil(
-        caches.open(cacheName).then(function(cache) {
-            console.log('Файлы кэшируются...');
-            return cache.addAll(cacheAssets);
-        }).then(() => {
-            console.log('Все файлы закэшированы!');
-            self.skipWaiting();
-        })
+        caches.open(cacheName)
+            .then(function(cache) {
+                console.log('Кэшируем статические файлы...');
+                return cache.addAll(cacheAssets);
+            })
+            .then(() => self.skipWaiting()) // Сразу активировать новый SW
+            .catch(function(error) {
+                console.error('Ошибка кэширования при установке:', error);
+            })
     );
 });
 
-// Обслуживаем запросы через кэш
+// Обрабатываем запросы через кэш
 self.addEventListener('fetch', function(event) {
-    // Кэшируем тайлы OSM и другие запросы
-    if (event.request.url.startsWith('https://tile.openstreetmap.org')) {
+    // Исключаем запросы к расширениям Chrome
+    if (event.request.url.startsWith('chrome-extension://')) {
+        return;
+    }
+
+    // Кэшируем запросы к тайлам
+    if (event.request.url.startsWith('https://api.maptiler.com/maps/streets-v2/')) {
         event.respondWith(
-            caches.open(cacheName).then(function(cache) {
-                return cache.match(event.request).then(function(response) {
-                    // Возвращаем закэшированный ресурс, если он есть, или загружаем из сети
-                    return response || fetch(event.request).then(function(networkResponse) {
-                        // Кэшируем новый запрос
-                        cache.put(event.request, networkResponse.clone());
-                        return networkResponse;
+            caches.match(event.request).then(function(response) {
+                return response || fetch(event.request).then(function(fetchResponse) {
+                    return caches.open(cacheName).then(function(cache) {
+                        cache.put(event.request, fetchResponse.clone()); // Кэшируем растровые тайлы
+                        return fetchResponse;
                     });
+                }).catch(function() {
+                    // Можно вернуть какую-либо заглушку, если оффлайн и нет тайлов
+                    return caches.match('/fallback-tile.png');
                 });
             })
         );
     } else {
-        // Для других запросов пробуем получить из кэша, если нет - загружаем из сети
+        // Обрабатываем другие запросы
         event.respondWith(
             caches.match(event.request).then(function(response) {
-                return response || fetch(event.request);
+                return response || fetch(event.request).then(function(fetchResponse) {
+                    return caches.open(cacheName).then(function(cache) {
+                        cache.put(event.request, fetchResponse.clone());
+                        return fetchResponse;
+                    });
+                }).catch(function() {
+                    return caches.match('/index.html'); // Возвращаем оффлайн-страницу
+                });
             })
         );
     }
 });
 
-// Удаление старых кэшей при активации нового Service Worker
+// Очищаем старый кэш при активации нового Service Worker
 self.addEventListener('activate', function(event) {
     event.waitUntil(
         caches.keys().then(function(cacheNames) {

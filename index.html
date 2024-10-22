@@ -1,50 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Leaflet with Service Worker</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <title>Display a map</title>
+    <link rel="stylesheet" href="/libs/leaflet.css" />
+    <script src="/libs/leaflet.js"></script>
     <style>
-        #map { height: 100vh; }
+        #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
     </style>
 </head>
 <body>
+<div id="map">
+    <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;">
+        <img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo">
+    </a>
+</div>
+<p><a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a>
+    <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+</p>
 
-<div id="map"></div>
-
-<script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
-    // Инициализация карты
-    var map = L.map('map').setView([51.505, -0.09], 13);
-
-    // Используем тайлы OSM, которые будут кэшироваться через Service Worker
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '© OpenStreetMap contributors'
+    const key = 'VQWsy76iY5yOIgLI2E8P';
+    const map = L.map('map').setView([0, 0], 2); //starting position
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`,{ //style URL
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 1,
+        attribution: "<a href=\"https://www.maptiler.com/copyright/\" target=\"_blank\">&copy; MapTiler</a> <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>",
+        crossOrigin: true
     }).addTo(map);
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
 
-    // Добавляем несколько маркеров для примера
-    var marker1 = L.marker([51.5, -0.09]).addTo(map)
-        .bindPopup('Маркер 1').openPopup();
+            // Обновляем вид карты на местоположение пользователя
+            map.setView([userLat, userLng], 13);
 
-    var marker2 = L.marker([51.495, -0.083]).addTo(map)
-        .bindPopup('Маркер 2');
-
-    var marker3 = L.marker([51.49, -0.1]).addTo(map)
-        .bindPopup('Маркер 3');
-</script>
-
-<script>
-    // Регистрируем Service Worker
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(function(reg) {
-            console.log('Service Worker зарегистрирован успешно с областью:', reg.scope);
-        }).catch(function(err) {
-            console.log('Ошибка при регистрации Service Worker:', err);
+            // Добавляем маркер на карте для пользователя
+            const marker = L.marker([userLat, userLng]).addTo(map)
+                .bindPopup("Вы здесь")
+                .openPopup();
+        }, function(error) {
+            console.error("Ошибка при получении локации: ", error);
         });
+    } else {
+        console.log("Геолокация не поддерживается вашим браузером.");
     }
 </script>
 
+<!-- Регистрация Service Worker -->
+<script>
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            console.log('Service Worker зарегистрирован с областью: ', registration.scope);
+        }).catch(function(error) {
+            console.error('Ошибка при регистрации Service Worker: ', error);
+        });
+    }
+</script>
 </body>
 </html>
