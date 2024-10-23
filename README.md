@@ -1,1 +1,3 @@
-https://sasfeat.github.io/demo-offline-map/
+# Demo offline map
+
+[Demo](https://sasfeat.github.io/demo-offline-map/)
