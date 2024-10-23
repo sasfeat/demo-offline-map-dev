@@ -6,58 +6,117 @@
     <link rel="stylesheet" href="/libs/leaflet.css" />
     <script src="/libs/leaflet.js"></script>
     <style>
-        #map {position: absolute; top: 0; right: 0; bottom: 0; left: 0;}
+        #map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
+        #locateBtn { position: absolute; top: 10px; left: 10px; z-index: 1000; padding: 10px; background-color: white; border: 1px solid #ccc; cursor: pointer; }
     </style>
 </head>
 <body>
+
 <div id="map">
     <a href="https://www.maptiler.com" style="position:absolute;left:10px;bottom:10px;z-index:999;">
         <img src="https://api.maptiler.com/resources/logo.svg" alt="MapTiler logo">
     </a>
 </div>
-<p><a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a>
-    <a href="https://www.openstreetmap.org/copyright" target="_blank">&copy; OpenStreetMap contributors</a>
+
+<button id="locateBtn">Show my location</button>
+
+<p>
+    <a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a>
+    <a href="https://www.openstreetmap.org/copyright/" target="_blank">&copy; OpenStreetMap contributors</a>
 </p>
 
 <script>
     const key = 'VQWsy76iY5yOIgLI2E8P';
-    const map = L.map('map').setView([0, 0], 2); //starting position
-    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`,{ //style URL
+    const map = L.map('map').setView([44.029, -121.326], 14); // Default position centered on markers
+
+    L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`, {
         tileSize: 512,
         zoomOffset: -1,
         minZoom: 1,
-        attribution: "<a href=\"https://www.maptiler.com/copyright/\" target=\"_blank\">&copy; MapTiler</a> <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\">&copy; OpenStreetMap contributors</a>",
+        attribution: "<a href=\"https://www.maptiler.com/copyright/\" target=\"_blank\">&copy; MapTiler</a> <a href=\"https://www.openstreetmap.org/copyright/\" target=\"_blank\">&copy; OpenStreetMap contributors</a>",
         crossOrigin: true
     }).addTo(map);
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const userLat = position.coords.latitude;
-            const userLng = position.coords.longitude;
 
-            // Обновляем вид карты на местоположение пользователя
-            map.setView([userLat, userLng], 13);
+    // Marker icon increased by 1.5 times
+    const largeIcon = L.icon({
+        iconUrl: '/images/marker-icon.png',  // Path to marker icon
+        shadowUrl: '/images/marker-shadow.png',  // Path to marker shadow
+        iconSize: [38, 57],  // Icon size increased by 1.5x (standard is [25, 41])
+        shadowSize: [57, 57],  // Shadow size also increased by 1.5x
+        iconAnchor: [19, 57],  // Anchor point of the icon (middle-bottom)
+        shadowAnchor: [28, 57],  // Anchor point of the shadow
+        popupAnchor: [1, -57]  // Offset for the popup
+    });
 
-            // Добавляем маркер на карте для пользователя
-            const marker = L.marker([userLat, userLng]).addTo(map)
-                .bindPopup("Вы здесь")
-                .openPopup();
-        }, function(error) {
-            console.error("Ошибка при получении локации: ", error);
-        });
-    } else {
-        console.log("Геолокация не поддерживается вашим браузером.");
+    // GeoJSON data for markers
+    const geojsonData = {
+        "type": "FeatureCollection",
+        "features": [
+            { "type": "Feature", "properties": { "Name": "Point 1" }, "geometry": { "type": "Point", "coordinates": [-121.3248433, 44.0273845] } },
+            { "type": "Feature", "properties": { "Name": "Point 2" }, "geometry": { "type": "Point", "coordinates": [-121.3255353, 44.0294484] } },
+            { "type": "Feature", "properties": { "Name": "Point 3" }, "geometry": { "type": "Point", "coordinates": [-121.3298322, 44.0309563] } }
+        ]
+    };
+
+    // Add markers from GeoJSON
+    L.geoJSON(geojsonData, {
+        pointToLayer: function(feature, latlng) {
+            const marker = L.marker(latlng, { icon: largeIcon });
+            marker.bindPopup(feature.properties.Name, { autoClose: false, closeOnClick: true });
+            return marker;
+        }
+    }).addTo(map);
+
+    // Geolocation marker
+    function onLocationFound(e) {
+        L.popup()
+            .setLatLng(e.latlng)
+            .setContent("I'm here!")
+            .openOn(map);
     }
+
+    map.on('locationfound', onLocationFound);
+
+    // Geolocation button click handler
+    document.getElementById('locateBtn').addEventListener('click', function() {
+        // Trigger geolocation when button is clicked
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                // Fire the location event manually
+                map.fire('locationfound', {
+                    latlng: L.latLng(userLat, userLng),
+                    accuracy: position.coords.accuracy
+                });
+
+                // Set view to user's location
+                try {
+                    map.setView([userLat, userLng], 13);
+                } catch (err) {
+                    alert("Unable to update the map view. Check your internet connection.");
+                }
+            }, function(error) {
+                console.error("Error getting geolocation: ", error);
+            });
+        } else {
+            console.log("Geolocation is not supported by this browser.");
+        }
+    });
+
 </script>
 
-<!-- Регистрация Service Worker -->
+<!-- Register Service Worker -->
 <script>
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then(function(registration) {
-            console.log('Service Worker зарегистрирован с областью: ', registration.scope);
+            console.log('Service Worker registered with scope: ', registration.scope);
         }).catch(function(error) {
-            console.error('Ошибка при регистрации Service Worker: ', error);
+            console.error('Service Worker registration failed: ', error);
         });
     }
 </script>
+
 </body>
 </html>

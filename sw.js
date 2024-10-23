@@ -4,6 +4,7 @@ const cacheAssets = [
     '/index.html',             // HTML файл
     '/libs/leaflet.css',       // Локальная копия Leaflet CSS (если есть)
     '/libs/leaflet.js',        // Локальная копия Leaflet JS (если есть)
+    '/images/marker-icon.png'
 ];
 
 // Устанавливаем Service Worker и кэшируем ресурсы
