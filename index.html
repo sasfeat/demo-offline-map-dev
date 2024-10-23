@@ -3,8 +3,9 @@
 <head>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>Display a map</title>
-    <link rel="stylesheet" href="/libs/leaflet.css" />
-    <script src="/libs/leaflet.js"></script>
+    <!-- Изменяем пути к стилям и скриптам на относительные -->
+    <link rel="stylesheet" href="libs/leaflet.css" />
+    <script src="libs/leaflet.js"></script>
     <style>
         #map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
         #locateBtn { position: absolute; top: 10px; left: 10px; z-index: 1000; padding: 10px; background-color: white; border: 1px solid #ccc; cursor: pointer; }
@@ -39,8 +40,8 @@
 
     // Marker icon increased by 1.5 times
     const largeIcon = L.icon({
-        iconUrl: '/images/marker-icon.png',  // Path to marker icon
-        shadowUrl: '/images/marker-shadow.png',  // Path to marker shadow
+        iconUrl: 'images/marker-icon.png',  // Path to marker icon
+        shadowUrl: 'images/marker-shadow.png',  // Path to marker shadow
         iconSize: [38, 57],  // Icon size increased by 1.5x (standard is [25, 41])
         shadowSize: [57, 57],  // Shadow size also increased by 1.5x
         iconAnchor: [19, 57],  // Anchor point of the icon (middle-bottom)
@@ -85,6 +86,8 @@
                 const userLat = position.coords.latitude;
                 const userLng = position.coords.longitude;
 
+                console.log("Geolocation found:", userLat, userLng);  // Log the position
+
                 // Fire the location event manually
                 map.fire('locationfound', {
                     latlng: L.latLng(userLat, userLng),
@@ -99,6 +102,7 @@
                 }
             }, function(error) {
                 console.error("Error getting geolocation: ", error);
+                alert("Unable to retrieve your location.");
             });
         } else {
             console.log("Geolocation is not supported by this browser.");
@@ -110,7 +114,7 @@
 <!-- Register Service Worker -->
 <script>
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').then(function(registration) {
+        navigator.serviceWorker.register('sw.js').then(function(registration) {
             console.log('Service Worker registered with scope: ', registration.scope);
         }).catch(function(error) {
             console.error('Service Worker registration failed: ', error);
