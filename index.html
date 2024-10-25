@@ -43,10 +43,10 @@
 
 <script>
     leafletScript.onload = function () {
-        const key = 'VQWsy76iY5yOIgLI2E8P';
+        const key = '4jp4WyVHK48PO10ZTVY3';
         const map = L.map('map').setView([44.029, -121.326], 14); // Default position centered on markers
 
-        L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${key}`, {
+        L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=' + key, {
             tileSize: 512,
             zoomOffset: -1,
             minZoom: 1,
