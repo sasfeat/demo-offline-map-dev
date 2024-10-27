@@ -121,7 +121,7 @@
                 for (let j = tileRange.min.y; j <= tileRange.max.y; j++) {
                     for (let i = tileRange.min.x; i <= tileRange.max.x; i++) {
                         const url = `https://api.maptiler.com/maps/streets-v2/${zoom}/${i}/${j}.png?key=${key}`;
-                        caches.open('maptiler-raster-cache-v1').then(function(cache) {
+                        caches.open('maptiler-raster-cache-v5').then(function(cache) {
                             fetch(url).then(function(response) {
                                 if (response && response.status === 200) {
                                     cache.put(url, response.clone());
@@ -143,6 +143,16 @@
             console.log('Service Worker registered with scope: ', registration.scope);
         }).catch(function(error) {
             console.error('Service Worker registration failed: ', error);
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            console.log('Service Worker controller changed. Reloading page to update content.');
+            window.location.reload();
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
+            console.log('Service Worker controller changed. Reloading page to update content.');
+            window.location.reload();
         });
     }
 </script>
