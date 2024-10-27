@@ -16,7 +16,6 @@ self.addEventListener('install', function(event) {
         })
     );
 });
-
 self.addEventListener('fetch', function(event) {
     if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
         // Перехват запросов к тайлам карты
@@ -31,8 +30,9 @@ self.addEventListener('fetch', function(event) {
                 return fetch(event.request).then(function(networkResponse) {
                     // Если ответ успешен, добавить тайл в кэш
                     if (networkResponse && networkResponse.status === 200) {
+                        const responseClone = networkResponse.clone();
                         caches.open(cacheName).then(function(cache) {
-                            cache.put(event.request, networkResponse.clone());
+                            cache.put(event.request, responseClone);
                         });
                     }
                     return networkResponse;
