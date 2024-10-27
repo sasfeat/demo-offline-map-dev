@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-    <title>Display a map</title>
+    <title>Display a map with Geofence</title>
 
-    <!-- Статические стили -->
+    <!-- Static styles -->
     <link id="leaflet-css" rel="stylesheet" href="libs/leaflet.css" />
 
     <style>
         #map { position: absolute; top: 0; right: 0; bottom: 0; left: 0; }
-        #locateBtn { position: absolute; bottom: 10px; right: 10px; z-index: 1000; padding: 10px; background-color: white; border: 1px solid #ccc; cursor: pointer; }
+        #locateBtn, #preloadBtn { position: absolute; bottom: 10px; right: 10px; z-index: 1000; padding: 10px; background-color: white; border: 1px solid #ccc; cursor: pointer; }
+        #preloadBtn { right: 120px; }
     </style>
 </head>
 <body>
@@ -21,21 +22,21 @@
 </div>
 
 <button id="locateBtn">Show my location</button>
+<button id="preloadBtn">Preload Tiles</button>
 
 <p>
     <a href="https://www.maptiler.com/copyright/" target="_blank">&copy; MapTiler</a>
     <a href="https://www.openstreetmap.org/copyright/" target="_blank">&copy; OpenStreetMap contributors</a>
 </p>
 
-<!-- Динамическое управление путями -->
+<!-- Dynamic script loading for Leaflet -->
 <script>
     const isGithubPages = window.location.hostname.includes('github.io');
     const basePath = isGithubPages ? '/demo-offline-map/' : '/';
 
-    // Подключение необходимых ресурсов с правильным путем
+    // Load necessary resources dynamically
     document.getElementById('leaflet-css').setAttribute('href', basePath + 'libs/leaflet.css');
 
-    // Динамически создаем тег для Leaflet.js
     const leafletScript = document.createElement('script');
     leafletScript.src = basePath + 'libs/leaflet.js';
     document.head.appendChild(leafletScript);
@@ -44,7 +45,7 @@
 <script>
     leafletScript.onload = function () {
         const key = '4jp4WyVHK48PO10ZTVY3';
-        const map = L.map('map').setView([44.029, -121.326], 14); // Default position centered on markers
+        const map = L.map('map');
 
         L.tileLayer('https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=' + key, {
             tileSize: 512,
@@ -54,68 +55,50 @@
             crossOrigin: true
         }).addTo(map);
 
-        // Marker icon increased by 1.5 times
-        const largeIcon = L.icon({
-            iconUrl: basePath + 'images/marker-icon.png',  // Path to marker icon
-            shadowUrl: basePath + 'images/marker-shadow.png',  // Path to marker shadow
-            iconSize: [38, 57],  // Icon size increased by 1.5x (standard is [25, 41])
-            shadowSize: [57, 57],  // Shadow size also increased by 1.5x
-            iconAnchor: [19, 57],  // Anchor point of the icon (middle-bottom)
-            shadowAnchor: [28, 57],  // Anchor point of the shadow
-            popupAnchor: [1, -57]  // Offset for the popup
-        });
-
-        // GeoJSON data for markers
+        // Geofence GeoJSON
         const geojsonData = {
             "type": "FeatureCollection",
+            "name": "geofence",
             "features": [
-                { "type": "Feature", "properties": { "Name": "Point 1" }, "geometry": { "type": "Point", "coordinates": [-121.3248433, 44.0273845] } },
-                { "type": "Feature", "properties": { "Name": "Point 2" }, "geometry": { "type": "Point", "coordinates": [-121.3255353, 44.0294484] } },
-                { "type": "Feature", "properties": { "Name": "Point 3" }, "geometry": { "type": "Point", "coordinates": [-121.3298322, 44.0309563] } }
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [ -111.7950638, 40.7082173 ],
+                                [ -111.7998703, 40.433869 ],
+                                [ -111.4881332, 40.4333463 ],
+                                [ -111.4888199, 40.5774424 ],
+                                [ -111.4929398, 40.7399606 ],
+                                [ -111.7964371, 40.7383998 ],
+                                [ -111.7950638, 40.7082173 ]
+                            ]
+                        ]
+                    }
+                }
             ]
         };
 
-        // Add markers from GeoJSON
-        L.geoJSON(geojsonData, {
-            pointToLayer: function(feature, latlng) {
-                const marker = L.marker(latlng, { icon: largeIcon });
-                marker.bindPopup(feature.properties.Name, { autoClose: false, closeOnClick: true });
-                return marker;
-            }
-        }).addTo(map);
-
-        // Geolocation marker
-        function onLocationFound(e) {
-            L.popup()
-                .setLatLng(e.latlng)
-                .setContent("I'm here!")
-                .openOn(map);
-        }
-
-        map.on('locationfound', onLocationFound);
+        // Add geofence to map and fit bounds
+        const geofenceLayer = L.geoJSON(geojsonData).addTo(map);
+        map.fitBounds(geofenceLayer.getBounds());
 
         // Geolocation button click handler
         document.getElementById('locateBtn').addEventListener('click', function() {
-            // Trigger geolocation when button is clicked
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
 
-                    console.log("Geolocation found:", userLat, userLng);  // Log the position
+                    console.log("Geolocation found:", userLat, userLng);
 
-                    // Fire the location event manually
-                    map.fire('locationfound', {
-                        latlng: L.latLng(userLat, userLng),
-                        accuracy: position.coords.accuracy
-                    });
+                    map.setView([userLat, userLng], 13);
 
-                    // Set view to user's location
-                    try {
-                        map.setView([userLat, userLng], 13);
-                    } catch (err) {
-                        alert("Unable to update the map view. Check your internet connection.");
-                    }
+                    L.popup()
+                        .setLatLng([userLat, userLng])
+                        .setContent("I'm here!")
+                        .openOn(map);
                 }, function(error) {
                     console.error("Error getting geolocation: ", error);
                     alert("Unable to retrieve your location.");
@@ -124,7 +107,33 @@
                 console.log("Geolocation is not supported by this browser.");
             }
         });
-    }
+
+        // Preload tiles button click handler
+        document.getElementById('preloadBtn').addEventListener('click', function() {
+            const bounds = L.geoJSON(geojsonData).getBounds();
+
+            for (let zoom = 0; zoom <= 15; zoom++) {
+                const tileBounds = map.getPixelBounds(bounds.getNorthWest(), zoom);
+                const tileRange = L.bounds(
+                    tileBounds.min.divideBy(256).floor(),
+                    tileBounds.max.divideBy(256).floor()
+                );
+                for (let j = tileRange.min.y; j <= tileRange.max.y; j++) {
+                    for (let i = tileRange.min.x; i <= tileRange.max.x; i++) {
+                        const url = `https://api.maptiler.com/maps/streets-v2/${zoom}/${i}/${j}.png?key=${key}`;
+                        caches.open('maptiler-raster-cache-v1').then(function(cache) {
+                            fetch(url).then(function(response) {
+                                if (response && response.status === 200) {
+                                    cache.put(url, response.clone());
+                                    console.log(`Tile at ${zoom}/${i}/${j} cached.`);
+                                }
+                            }).catch(err => console.error(`Error fetching tile at ${zoom}/${i}/${j}:`, err));
+                        });
+                    }
+                }
+            }
+        });
+    };
 </script>
 
 <!-- Register Service Worker -->
