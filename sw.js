@@ -1,78 +1,56 @@
 const cacheName = 'maptiler-raster-cache-v1';
 const cacheAssets = [
-    '/',                      // Главная страница
-    '/index.html',             // HTML файл
-    '/libs/leaflet.css',       // Локальная копия Leaflet CSS (если есть)
-    '/libs/leaflet.js',        // Локальная копия Leaflet JS (если есть)
-    '/images/marker-icon.png'
+    '/',
+    '/index.html',
+    '/libs/leaflet.css',
+    '/libs/leaflet.js',
+    '/images/marker-icon.png',
+    '/images/marker-shadow.png',
+    '/images/marker-icon-2x.png'
 ];
-
-// Устанавливаем Service Worker и кэшируем ресурсы
 self.addEventListener('install', function(event) {
     event.waitUntil(
-        caches.open(cacheName)
-            .then(function(cache) {
-                console.log('Кэшируем статические файлы...');
-                return cache.addAll(cacheAssets);
-            })
-            .then(() => self.skipWaiting()) // Сразу активировать новый SW
-            .catch(function(error) {
-                console.error('Ошибка кэширования при установке:', error);
-            })
+        caches.open(cacheName).then(function(cache) {
+            // Предварительное кэширование статических ресурсов
+            return cache.addAll(cacheAssets);
+        })
     );
 });
 
-// Обрабатываем запросы через кэш
 self.addEventListener('fetch', function(event) {
-    // Исключаем запросы к расширениям Chrome
-    if (event.request.url.startsWith('chrome-extension://')) {
-        return;
-    }
-
-    // Кэшируем запросы к тайлам
-    if (event.request.url.startsWith('https://api.maptiler.com/maps/streets-v2/')) {
+    if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
+        // Перехват запросов к тайлам карты
         event.respondWith(
             caches.match(event.request).then(function(response) {
-                return response || fetch(event.request).then(function(fetchResponse) {
-                    return caches.open(cacheName).then(function(cache) {
-                        cache.put(event.request, fetchResponse.clone()); // Кэшируем растровые тайлы
-                        return fetchResponse;
-                    });
+                if (response) {
+                    // Если ресурс найден в кэше, вернуть его
+                    return response;
+                }
+
+                // Если тайл не найден в кэше, запросить его из сети
+                return fetch(event.request).then(function(networkResponse) {
+                    // Если ответ успешен, добавить тайл в кэш
+                    if (networkResponse && networkResponse.status === 200) {
+                        caches.open(cacheName).then(function(cache) {
+                            cache.put(event.request, networkResponse.clone());
+                        });
+                    }
+                    return networkResponse;
                 }).catch(function() {
-                    // Можно вернуть какую-либо заглушку, если оффлайн и нет тайлов
-                    return caches.match('/fallback-tile.png');
+                    // В случае отсутствия сети можно вернуть "заглушку" или уведомить пользователя
+                    return new Response('Тайл не найден и нет доступа к сети.', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
                 });
             })
         );
     } else {
-        // Обрабатываем другие запросы
+        // Обычная обработка для других запросов
         event.respondWith(
             caches.match(event.request).then(function(response) {
-                return response || fetch(event.request).then(function(fetchResponse) {
-                    return caches.open(cacheName).then(function(cache) {
-                        cache.put(event.request, fetchResponse.clone());
-                        return fetchResponse;
-                    });
-                }).catch(function() {
-                    return caches.match('/index.html'); // Возвращаем оффлайн-страницу
-                });
+                return response || fetch(event.request);
             })
         );
     }
-});
-
-// Очищаем старый кэш при активации нового Service Worker
-self.addEventListener('activate', function(event) {
-    event.waitUntil(
-        caches.keys().then(function(cacheNames) {
-            return Promise.all(
-                cacheNames.map(function(currentCacheName) {
-                    if (currentCacheName !== cacheName) {
-                        console.log('Удаляем старый кэш:', currentCacheName);
-                        return caches.delete(currentCacheName);
-                    }
-                })
-            );
-        })
-    );
 });
