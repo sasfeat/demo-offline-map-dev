@@ -1,6 +1,6 @@
 // sw.js
 
-const cacheName = 'maptiler-raster-cache-v5';
+const cacheName = 'maptiler-raster-cache-v1';
 const cacheAssets = [
     '/',
     '/index.html',
