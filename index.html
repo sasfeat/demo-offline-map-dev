@@ -84,33 +84,9 @@
         const geofenceLayer = L.geoJSON(geojsonData).addTo(map);
         map.fitBounds(geofenceLayer.getBounds());
 
-        // Geolocation button click handler
-        document.getElementById('locateBtn').addEventListener('click', function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-
-                    console.log("Geolocation found:", userLat, userLng);
-
-                    map.setView([userLat, userLng], 13);
-
-                    L.popup()
-                        .setLatLng([userLat, userLng])
-                        .setContent("I'm here!")
-                        .openOn(map);
-                }, function(error) {
-                    console.error("Error getting geolocation: ", error);
-                    alert("Unable to retrieve your location.");
-                });
-            } else {
-                console.log("Geolocation is not supported by this browser.");
-            }
-        });
-
         // Preload tiles button click handler
         document.getElementById('preloadBtn').addEventListener('click', function() {
-            const bounds = L.geoJSON(geojsonData).getBounds();
+            const bounds = geofenceLayer.getBounds();
 
             for (let zoom = 0; zoom <= 15; zoom++) {
                 const tileBounds = map.getPixelBounds(bounds.getNorthWest(), zoom);
@@ -118,16 +94,23 @@
                     tileBounds.min.divideBy(256).floor(),
                     tileBounds.max.divideBy(256).floor()
                 );
+
                 for (let j = tileRange.min.y; j <= tileRange.max.y; j++) {
                     for (let i = tileRange.min.x; i <= tileRange.max.x; i++) {
                         const url = `https://api.maptiler.com/maps/streets-v2/${zoom}/${i}/${j}.png?key=${key}`;
+
+                        // Кэшируем тайл через Service Worker
                         caches.open('maptiler-raster-cache-v1').then(function(cache) {
                             fetch(url).then(function(response) {
-                                if (response && response.status === 200) {
+                                if (response.ok) {
                                     cache.put(url, response.clone());
                                     console.log(`Tile at ${zoom}/${i}/${j} cached.`);
+                                } else {
+                                    console.warn(`Failed to fetch tile at ${zoom}/${i}/${j}: Status ${response.status}`);
                                 }
-                            }).catch(err => console.error(`Error fetching tile at ${zoom}/${i}/${j}:`, err));
+                            }).catch(function(error) {
+                                console.error(`Error fetching tile at ${zoom}/${i}/${j}:`, error);
+                            });
                         });
                     }
                 }
@@ -135,6 +118,7 @@
         });
     };
 </script>
+
 
 <!-- Register Service Worker -->
 <script>
