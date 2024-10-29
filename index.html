@@ -29,7 +29,8 @@
 
 <script>
     const isGithubPages = window.location.hostname.includes('github.io');
-    const basePath = isGithubPages ? '/demo-offline-map/' : '/';
+    const isSkyFire = window.location.hostname.includes('skyfirestudio.com');
+    const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
     document.getElementById('leaflet-css').setAttribute('href', basePath + 'libs/leaflet.css');
 
     const leafletScript = document.createElement('script');
@@ -128,11 +129,17 @@
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register(basePath + 'sw.js').then(function(registration) {
             console.log('Service Worker registered with scope: ', registration.scope);
+
+            // Send the basePath to the service worker after registration
+            if (registration.active) {
+                registration.active.postMessage({ basePath: basePath });
+            }
         }).catch(function(error) {
             console.error('Service Worker registration failed: ', error);
         });
     }
 </script>
+
 
 </body>
 </html>
