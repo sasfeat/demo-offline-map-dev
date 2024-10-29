@@ -1,24 +1,7 @@
-let basePath = '/';  // default value
+const isGithubPages = window.location.hostname.includes('github.io');
+const isSkyFire = window.location.hostname.includes('skyfirestudio.com');
+const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
 
-self.addEventListener('message', function(event) {
-    if (event.data && event.data.basePath) {
-        basePath = event.data.basePath;
-        updateCacheAssets();
-    }
-});
-
-function updateCacheAssets() {
-    // Update the cacheAssets with the correct basePath
-    cacheAssets = [
-        basePath,
-        `${basePath}index.html`,
-        `${basePath}libs/leaflet.css`,
-        `${basePath}libs/leaflet.js`,
-        `${basePath}images/marker-icon.png`,
-        `${basePath}images/marker-shadow.png`,
-        `${basePath}images/marker-icon-2x.png`
-    ];
-}
 
 const cacheName = 'maptiler-raster-cache-v3';
 let cacheAssets = [
