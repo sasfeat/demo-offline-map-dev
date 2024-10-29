@@ -1,6 +1,5 @@
 const cacheName = 'maptiler-raster-cache-v3';
 
-// Определение basePath захардкожено в зависимости от домена
 const isGithubPages = self.location.hostname.includes('github.io');
 const isSkyFire = self.location.hostname.includes('skyfirestudio.com');
 const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
