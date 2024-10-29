@@ -3,16 +3,16 @@ const isSkyFire = window.location.hostname.includes('skyfirestudio.com');
 const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
 
 
-const cacheName = 'maptiler-raster-cache-v3';
-let cacheAssets = [
-    '/',  // Default assets, will be updated once basePath is received
-    '/index.html',
-    '/libs/leaflet.css',
-    '/libs/leaflet.js',
-    '/images/marker-icon.png',
-    '/images/marker-shadow.png',
-    '/images/marker-icon-2x.png'
+cacheAssets = [
+    basePath,
+    `${basePath}index.html`,
+    `${basePath}libs/leaflet.css`,
+    `${basePath}libs/leaflet.js`,
+    `${basePath}images/marker-icon.png`,
+    `${basePath}images/marker-shadow.png`,
+    `${basePath}images/marker-icon-2x.png`
 ];
+const cacheName = 'maptiler-raster-cache-v3';
 
 self.addEventListener('install', function(event) {
     event.waitUntil(
