@@ -1,5 +1,33 @@
 const cacheName = 'maptiler-raster-cache-v3';
-let basePath = '/'; // Default value
+
+// Определение basePath захардкожено в зависимости от домена
+const isGithubPages = self.location.hostname.includes('github.io');
+const isSkyFire = self.location.hostname.includes('skyfirestudio.com');
+const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
+
+function updateCacheAssets() {
+    cacheAssets = [
+        basePath,
+        `${basePath}index.html`,
+        `${basePath}libs/leaflet.css`,
+        `${basePath}libs/leaflet.js`,
+        `${basePath}images/marker-icon.png`,
+        `${basePath}images/marker-shadow.png`,
+        `${basePath}images/marker-icon-2x.png`
+    ];
+}
+
+let cacheAssets = [
+    '/',  // Default assets, will be updated once basePath is set
+    '/index.html',
+    '/libs/leaflet.css',
+    '/libs/leaflet.js',
+    '/images/marker-icon.png',
+    '/images/marker-shadow.png',
+    '/images/marker-icon-2x.png'
+];
+
+updateCacheAssets();
 
 self.addEventListener('install', function(event) {
     event.waitUntil(
@@ -25,35 +53,6 @@ self.addEventListener('activate', function(event) {
         })
     );
 });
-
-self.addEventListener('message', function(event) {
-    if (event.data && event.data.basePath) {
-        basePath = event.data.basePath;
-        updateCacheAssets();
-    }
-});
-
-function updateCacheAssets() {
-    cacheAssets = [
-        basePath,
-        `${basePath}index.html`,
-        `${basePath}libs/leaflet.css`,
-        `${basePath}libs/leaflet.js`,
-        `${basePath}images/marker-icon.png`,
-        `${basePath}images/marker-shadow.png`,
-        `${basePath}images/marker-icon-2x.png`
-    ];
-}
-
-let cacheAssets = [
-    '/',  // Default assets, will be updated once basePath is received
-    '/index.html',
-    '/libs/leaflet.css',
-    '/libs/leaflet.js',
-    '/images/marker-icon.png',
-    '/images/marker-shadow.png',
-    '/images/marker-icon-2x.png'
-];
 
 self.addEventListener('fetch', function(event) {
     if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
