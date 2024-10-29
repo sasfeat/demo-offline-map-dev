@@ -4,7 +4,7 @@
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <title>Display a map</title>
 
-    <!-- Статические стили -->
+    <!-- Static styles -->
     <link id="leaflet-css" rel="stylesheet" href="libs/leaflet.css" />
 
     <style>
@@ -27,15 +27,11 @@
     <a href="https://www.openstreetmap.org/copyright/" target="_blank">&copy; OpenStreetMap contributors</a>
 </p>
 
-<!-- Динамическое управление путями -->
 <script>
     const isGithubPages = window.location.hostname.includes('github.io');
     const basePath = isGithubPages ? '/demo-offline-map/' : '/';
-
-    // Подключение необходимых ресурсов с правильным путем
     document.getElementById('leaflet-css').setAttribute('href', basePath + 'libs/leaflet.css');
 
-    // Динамически создаем тег для Leaflet.js
     const leafletScript = document.createElement('script');
     leafletScript.src = basePath + 'libs/leaflet.js';
     document.head.appendChild(leafletScript);

@@ -11,24 +11,23 @@ const cacheAssets = [
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(cacheName).then(function(cache) {
-            // Предварительное кэширование статических ресурсов
             return cache.addAll(cacheAssets);
         })
     );
 });
 self.addEventListener('fetch', function(event) {
     if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
-        // Перехват запросов к тайлам карты
+        // Intercept requests to map tiles
         event.respondWith(
             caches.match(event.request).then(function(response) {
                 if (response) {
-                    // Если ресурс найден в кэше, вернуть его
+                    // If the resource is found in the cache, return it
                     return response;
                 }
 
-                // Если тайл не найден в кэше, запросить его из сети
+                // If the tile is not found in the cache, request it from the network
                 return fetch(event.request).then(function(networkResponse) {
-                    // Если ответ успешен, добавить тайл в кэш
+                    // If the response is successful, add the tile to the cache
                     if (networkResponse && networkResponse.status === 200) {
                         const responseClone = networkResponse.clone();
                         caches.open(cacheName).then(function(cache) {
@@ -37,8 +36,8 @@ self.addEventListener('fetch', function(event) {
                     }
                     return networkResponse;
                 }).catch(function() {
-                    // В случае отсутствия сети можно вернуть "заглушку" или уведомить пользователя
-                    return new Response('Тайл не найден и нет доступа к сети.', {
+                    // In case of no network, return a fallback or notify the user
+                    return new Response('Tile not found and no network access.', {
                         status: 503,
                         statusText: 'Service Unavailable'
                     });
@@ -46,7 +45,7 @@ self.addEventListener('fetch', function(event) {
             })
         );
     } else {
-        // Обычная обработка для других запросов
+        // Normal processing for other requests
         event.respondWith(
             caches.match(event.request).then(function(response) {
                 return response || fetch(event.request);
