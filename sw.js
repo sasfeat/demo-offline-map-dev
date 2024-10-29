@@ -1,4 +1,4 @@
-const cacheName = 'maptiler-raster-cache-v1';
+const cacheName = 'maptiler-raster-cache-v2';
 const cacheAssets = [
     '/',
     '/index.html',
@@ -11,10 +11,13 @@ const cacheAssets = [
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(cacheName).then(function(cache) {
-            return cache.addAll(cacheAssets);
+            return cache.addAll(cacheAssets).catch(function(error) {
+                console.error('Failed to cache assets during install:', error);
+            });
         })
     );
 });
+
 self.addEventListener('fetch', function(event) {
     if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
         // Intercept requests to map tiles
