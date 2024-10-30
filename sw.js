@@ -52,20 +52,19 @@ self.addEventListener('activate', function(event) {
         })
     );
 });
-
 self.addEventListener('fetch', function(event) {
     if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
-        // Intercept requests to map tiles
+        // Перехватываем запросы к тайлам
         event.respondWith(
-            caches.match(event.request).then(function(response) {
+            caches.match(event.request, { ignoreVary: true }).then(function(response) {
                 if (response) {
-                    // If the resource is found in the cache, return it
+                    // Если ресурс найден в кэше, вернуть его
+                    console.log(`Serving from cache: ${event.request.url}`);
                     return response;
                 }
 
-                // If the tile is not found in the cache, request it from the network
+                // Если тайл не найден в кэше, запросить его из сети и добавить в кэш
                 return fetch(event.request).then(function(networkResponse) {
-                    // If the response is successful, add the tile to the cache
                     if (networkResponse && networkResponse.status === 200) {
                         const responseClone = networkResponse.clone();
                         caches.open(cacheName).then(function(cache) {
@@ -74,8 +73,9 @@ self.addEventListener('fetch', function(event) {
                         });
                     }
                     return networkResponse;
-                }).catch(function() {
-                    // In case of no network, return a fallback or notify the user
+                }).catch(function(error) {
+                    // Если нет сети, вернуть "заглушку" или уведомить пользователя
+                    console.error(`Failed to fetch tile, no network: ${event.request.url}`, error);
                     return new Response('Tile not found and no network access.', {
                         status: 503,
                         statusText: 'Service Unavailable'
@@ -84,12 +84,14 @@ self.addEventListener('fetch', function(event) {
             })
         );
     } else {
-        // Normal processing for other requests
+        // Обычная обработка для других запросов
         event.respondWith(
-            caches.match(event.request).then(function(response) {
+            caches.match(event.request, { ignoreVary: true }).then(function(response) {
                 return response || fetch(event.request);
             })
         );
     }
 });
+
+
 

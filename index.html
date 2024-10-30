@@ -100,7 +100,7 @@
                         const url = `https://api.maptiler.com/maps/streets-v2/${zoom}/${i}/${j}.png?key=${key}`;
 
                         // Кэшируем тайл через Service Worker
-                        caches.open('maptiler-raster-cache-v1').then(function(cache) {
+                        caches.open('maptiler-raster-cache-v3').then(function(cache) {
                             fetch(url).then(function(response) {
                                 if (response.ok) {
                                     cache.put(url, response.clone());
