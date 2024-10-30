@@ -1,78 +1,45 @@
-// sw.js
+const cacheName = 'maptiler-raster-cache-v3';
 
-const cacheName = 'maptiler-raster-cache-v1';
-const cacheAssets = [
-    '/',                      // Главная страница
-    '/index.html',            // HTML файл
-    '/libs/leaflet.css',      // Локальная копия Leaflet CSS (если есть)
-    '/libs/leaflet.js',       // Локальная копия Leaflet JS (если есть)
+const isGithubPages = self.location.hostname.includes('github.io');
+const isSkyFire = self.location.hostname.includes('skyfirestudio.com');
+const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
+
+function updateCacheAssets() {
+    cacheAssets = [
+        basePath,
+        `${basePath}index.html`,
+        `${basePath}libs/leaflet.css`,
+        `${basePath}libs/leaflet.js`,
+        `${basePath}images/marker-icon.png`,
+        `${basePath}images/marker-shadow.png`,
+        `${basePath}images/marker-icon-2x.png`
+    ];
+}
+
+let cacheAssets = [
+    '/',  // Default assets, will be updated once basePath is set
+    '/index.html',
+    '/libs/leaflet.css',
+    '/libs/leaflet.js',
     '/images/marker-icon.png',
     '/images/marker-shadow.png',
     '/images/marker-icon-2x.png'
 ];
 
-// Устанавливаем Service Worker и кэшируем ресурсы
+updateCacheAssets();
+
 self.addEventListener('install', function(event) {
     event.waitUntil(
+        self.skipWaiting(), // Skip waiting to activate the service worker immediately
         caches.open(cacheName).then(function(cache) {
-            console.log('Кэшируем статические файлы...');
-            return cache.addAll(cacheAssets).catch(function(error) {
-                console.error('Ошибка кэширования при установке: ', error);
-            });
-        })
-    );
-    self.skipWaiting(); // Сразу активируем новый Service Worker
-});
-
-// Обрабатываем запросы через Service Worker
-self.addEventListener('fetch', function(event) {
-    // Проверяем запросы к расширениям Chrome
-    if (event.request.url.startsWith('chrome-extension://')) {
-        return;
-    }
-
-    event.respondWith(
-        caches.match(event.request).then(function(response) {
-            if (response) {
-                console.log(`Serving from cache: ${event.request.url}`);
-                return response;
-            }
-
-            // Если нет в кэше, загружаем из сети и добавляем в кэш
-            return fetch(event.request)
-                .then(function(networkResponse) {
-                    if (networkResponse && networkResponse.status === 200) {
-                        return caches.open(cacheName).then(function(cache) {
-                            cache.put(event.request, networkResponse.clone());
-                            console.log(`Fetched from network and cached: ${event.request.url}`);
-                            return networkResponse;
-                        });
-                    } else {
-                        console.warn(`Failed to fetch from network: ${event.request.url}`);
-                        return networkResponse;
-                    }
-                })
-                .catch(function(error) {
-                    console.warn(`Network unavailable and resource not cached: ${event.request.url}`, error);
-                    // Попробуем еще раз получить ресурс из кэша, если произошел сбой
-                    return caches.match(event.request).then(function(cachedResponse) {
-                        if (cachedResponse) {
-                            return cachedResponse;
-                        } else {
-                            return new Response('Resource not available offline.', {
-                                status: 503,
-                                statusText: 'Service Unavailable'
-                            });
-                        }
-                    });
-                });
+            return cache.addAll(cacheAssets);
         })
     );
 });
 
-// Очищаем старый кэш при активации нового Service Worker
 self.addEventListener('activate', function(event) {
     event.waitUntil(
+        clients.claim(), // Claim clients to start controlling them immediately
         caches.keys().then(function(cacheNames) {
             return Promise.all(
                 cacheNames.map(function(existingCacheName) {
@@ -84,5 +51,45 @@ self.addEventListener('activate', function(event) {
             );
         })
     );
-    self.clients.claim(); // Активируем новый Service Worker на всех страницах
 });
+
+self.addEventListener('fetch', function(event) {
+    if (event.request.url.includes('https://api.maptiler.com/maps/streets-v2/')) {
+        // Intercept requests to map tiles
+        event.respondWith(
+            caches.match(event.request).then(function(response) {
+                if (response) {
+                    // If the resource is found in the cache, return it
+                    return response;
+                }
+
+                // If the tile is not found in the cache, request it from the network
+                return fetch(event.request).then(function(networkResponse) {
+                    // If the response is successful, add the tile to the cache
+                    if (networkResponse && networkResponse.status === 200) {
+                        const responseClone = networkResponse.clone();
+                        caches.open(cacheName).then(function(cache) {
+                            cache.put(event.request, responseClone);
+                            console.log(`Fetched from network and cached: ${event.request.url}`);
+                        });
+                    }
+                    return networkResponse;
+                }).catch(function() {
+                    // In case of no network, return a fallback or notify the user
+                    return new Response('Tile not found and no network access.', {
+                        status: 503,
+                        statusText: 'Service Unavailable'
+                    });
+                });
+            })
+        );
+    } else {
+        // Normal processing for other requests
+        event.respondWith(
+            caches.match(event.request).then(function(response) {
+                return response || fetch(event.request);
+            })
+        );
+    }
+});
+
