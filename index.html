@@ -34,7 +34,7 @@
     // Load necessary resources dynamically
     const isGithubPages = window.location.hostname.includes('github.io');
     const isSkyFire = window.location.hostname.includes('skyfirestudio.com');
-    const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
+    const basePath = isGithubPages ? '/demo-offline-map-dev/' : (isSkyFire ? '/maps/' : '/');
     document.getElementById('leaflet-css').setAttribute('href', basePath + 'libs/leaflet.css');
 
     const leafletScript = document.createElement('script');

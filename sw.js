@@ -2,7 +2,7 @@ const cacheName = 'maptiler-raster-cache-v3';
 
 const isGithubPages = self.location.hostname.includes('github.io');
 const isSkyFire = self.location.hostname.includes('skyfirestudio.com');
-const basePath = isGithubPages ? '/demo-offline-map/' : (isSkyFire ? '/maps/' : '/');
+const basePath = isGithubPages ? '/demo-offline-map-dev/' : (isSkyFire ? '/maps/' : '/');
 
 function updateCacheAssets() {
     cacheAssets = [
